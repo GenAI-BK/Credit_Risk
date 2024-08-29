@@ -14,7 +14,7 @@ loan_amount = st.text_input("Enter Requested loan amount")
 purpose = st.text_input("Enter Loan Purpose")
 credit_score = st.text_input("Enter Credit score")
 tenure = st.number_input("Enter the requested tenure for the amount in years")
-bank_statement = st.file_uploader("Upload Bank Statements", "PDF")
+bank_statement = st.file_uploader("Upload Bank Statements", "DOCX")
 credit_statement = st.file_uploader("Upload Credit card statement (Optional)", "DOCX")
 bank_account_type = st.selectbox("Select Account Type", ("Savings Account", "Current Account", "Salaried Account"))
 income_proof = st.selectbox("Select Income Proof", ("Offer Letter", "Salary slips"))
@@ -163,7 +163,7 @@ def save_to_database(data):
 
 if st.button("Evaluate risk"):  
     if bank_statement and selected_income_proof and assets_info and debts_info:
-        bank_statement_data = extract_text_and_images_from_pdf(pdfpath=bank_statement)
+        bank_statement_data = read_doc(bank_statement)
 
         credit_card_data = read_doc(credit_statement) if credit_statement else ""
 
