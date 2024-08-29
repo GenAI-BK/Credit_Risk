@@ -1,4 +1,7 @@
 import re
+import pandas as pd
+from io import BytesIO
+import xlsxwriter
 import sqlite3
 from openai import OpenAI
 import fitz  # PyMuPDF
@@ -162,7 +165,23 @@ def save_to_database(data):
                       VALUES (?, ?, ?, ?, ?, ?, ?)''', 
                       (data['PD'], data['EAD'], data['LGD'], data['Expected Loss'], data['Positive Indicators'], data['Risk Factors'], data['Conclusion']))
     conn.commit()
+    df = pd.read_sql_query("SELECT * FROM credit_risk_analysis", conn)
     conn.close()
+    return df
+
+def download_excel(dataframe):
+    # Create a BytesIO stream to save the excel file
+    output = BytesIO()
+
+    # Create an ExcelWriter object and write the dataframe to it
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        dataframe.to_excel(writer, index=False, sheet_name='Credit Risk Analysis')
+
+    # Seek the stream to the beginning so it can be read
+    output.seek(0)
+
+    return output
+
 
 if st.button("Evaluate risk"):  
     if bank_statement and selected_income_proof and assets_info and debts_info:
@@ -183,6 +202,13 @@ if st.button("Evaluate risk"):
         ans = credit_risk(bank_statement_data, credit_card_data, income_result, assets_result, debts_result)
         st.write(ans)
         data = parse_response(ans)
-        save_to_database(data)  
+        df = save_to_database(data)
+        excel_data = download_excel(df)
+        st.download_button(
+            label="Download analysis as Excel",
+            data=excel_data,
+            file_name='credit_risk_analysis.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )  
     else:
         st.error("Please upload all required documents.")
