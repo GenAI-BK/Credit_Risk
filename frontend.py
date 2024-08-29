@@ -4,15 +4,16 @@ from io import BytesIO
 import xlsxwriter
 import sqlite3
 from openai import OpenAI
-import fitz  # PyMuPDF
 from PIL import Image
 import io
 from docx import Document
 import streamlit as st
+import uuid
+
+if 'session_id' not in st.session_state:
+    st.session_state['session_id'] = str(uuid.uuid4())
 
 llm=OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
-st.title("Credit Risk Analysis")
 
 borrower = st.text_input("Enter Borrower's Name")
 loan_amount = st.text_input("Enter Requested loan amount")
@@ -27,25 +28,6 @@ selected_income_proof = st.file_uploader("Upload Income proof", "DOCX")
 assets_info = st.file_uploader("Upload Assets Information", "DOCX")
 debts_info = st.file_uploader("Upload Debts Information", "DOCX")
 
-def extract_text_and_images_from_pdf(pdfpath):
-    doc = fitz.open(pdfpath)
-    text = ""
-
-    for page_number in range(len(doc)):
-        page = doc.load_page(page_number)
-        page_text = page.get_text()
-        text += page_text
-
-        image_list = page.get_images(full=True)
-        for img_index, img in enumerate(image_list, start=1):
-            xref = img[0]
-            base_image = doc.extract_image(xref)
-            image_bytes = base_image["image"]
-            image_ext = base_image["ext"]
-            image_pil = Image.open(io.BytesIO(image_bytes))
-            text += perform_ocr(image_pil)
-
-    return text
 
 def perform_ocr(image):
     try:
@@ -88,7 +70,7 @@ def credit_risk(bank_statement_data, credit_card_data, income_data, assets_data,
             {"role": "user", "content": f'''
             Bank Statement: {bank_statement_data}
             Credit card Statement: {credit_card_data}
-            Proof Of income  ({selected_income_proof}): {income_data}
+            Proof Of income ({selected_income_proof}) : {income_data}
             Assets: {assets_data}
             Current outstanding debts and Monthly payments for those Debts: {debts_data}
             Credit Score: {credit_score}
@@ -99,8 +81,7 @@ def credit_risk(bank_statement_data, credit_card_data, income_data, assets_data,
 
             Calculate the exposure at default(EAD) (EAD for any loan is the requested loan amount) \
             Assume no potential future drawdowns for simplicity. Once EAD is calculated, \
-            calculate Loss Given default(LGD) (taking total assets value in consideration) and \
-            Probability of Default(PD)(taking credit score into consideration) in percentage. \
+            calculate Loss Given default(LGD) and Probability of Default(PD) in percentage. \
             Calculate expected Loss by multiplying EAD x LGD x PD.
             Also calculate current monthly Debt-to-income ratio and Debt-to-income ratio if the loan is approved\
             and perform a credit risk analysis\. For any of the numbers, do not put ',(commas)' in between
@@ -149,11 +130,12 @@ def parse_response(response):
     
     return data
 
-def save_to_database(data):
+def save_to_database(data, session_id):
     conn = sqlite3.connect('credit_risk.db')
     cursor = conn.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS credit_risk_analysis (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        session_id TEXT,
                         PD TEXT,
                         EAD TEXT,
                         LGD TEXT,
@@ -161,11 +143,11 @@ def save_to_database(data):
                         Positive_Indicators TEXT,
                         Risk_Factors TEXT,
                         Conclusion TEXT)''')
-    cursor.execute('''INSERT INTO credit_risk_analysis (PD, EAD, LGD, Expected_Loss, Positive_Indicators, Risk_Factors, Conclusion)
-                      VALUES (?, ?, ?, ?, ?, ?, ?)''', 
-                      (data['PD'], data['EAD'], data['LGD'], data['Expected Loss'], data['Positive Indicators'], data['Risk Factors'], data['Conclusion']))
+    cursor.execute('''INSERT INTO credit_risk_analysis (session_id, PD, EAD, LGD, Expected_Loss, Positive_Indicators, Risk_Factors, Conclusion)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', 
+                      (session_id, data['PD'], data['EAD'], data['LGD'], data['Expected Loss'], data['Positive Indicators'], data['Risk Factors'], data['Conclusion']))
     conn.commit()
-    df = pd.read_sql_query("SELECT * FROM credit_risk_analysis", conn)
+    df = pd.read_sql_query("SELECT * FROM credit_risk_analysis WHERE session_id = ?", conn, params=(session_id,))
     conn.close()
     return df
 
@@ -191,6 +173,7 @@ if st.button("Evaluate risk"):
 
         income_data = read_doc(selected_income_proof)
         income_result = process_document(income_data, 'Income Proof', 'Summarize the document and return the monthly income')
+        print(income_result)
 
         assets_data = read_doc(assets_info)
         assets_result = process_document(assets_data, "Assets Information", 'Calculate the total value of assets')
@@ -202,7 +185,7 @@ if st.button("Evaluate risk"):
         ans = credit_risk(bank_statement_data, credit_card_data, income_result, assets_result, debts_result)
         st.write(ans)
         data = parse_response(ans)
-        df = save_to_database(data)
+        df= save_to_database(data, st.session_state['session_id'])
         excel_data = download_excel(df)
         st.download_button(
             label="Download analysis as Excel",
