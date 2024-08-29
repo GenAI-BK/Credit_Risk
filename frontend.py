@@ -96,7 +96,8 @@ def credit_risk(bank_statement_data, credit_card_data, income_data, assets_data,
 
             Calculate the exposure at default(EAD) (EAD for any loan is the requested loan amount) \
             Assume no potential future drawdowns for simplicity. Once EAD is calculated, \
-            calculate Loss Given default(LGD) and Probability of Default(PD) in percentage taking total assets value in consideration. \
+            calculate Loss Given default(LGD) (taking total assets value in consideration) and \
+            Probability of Default(PD)(taking credit score into consideration) in percentage. \
             Calculate expected Loss by multiplying EAD x LGD x PD.
             Also calculate current monthly Debt-to-income ratio and Debt-to-income ratio if the loan is approved\
             and perform a credit risk analysis\. For any of the numbers, do not put ',(commas)' in between
