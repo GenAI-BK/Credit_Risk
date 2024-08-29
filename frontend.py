@@ -163,26 +163,23 @@ def save_to_database(data):
 
 if st.button("Evaluate risk"):  
     if bank_statement and selected_income_proof and assets_info and debts_info:
-        try:
-            bank_statement_data = extract_text_and_images_from_pdf(pdfpath=bank_statement)
+        bank_statement_data = extract_text_and_images_from_pdf(pdfpath=bank_statement)
 
-            credit_card_data = read_doc(credit_statement) if credit_statement else ""
+        credit_card_data = read_doc(credit_statement) if credit_statement else ""
 
-            income_data = read_doc(selected_income_proof)
-            income_result = process_document(income_data, 'Income Proof', 'Summarize the document and return the monthly income')
+        income_data = read_doc(selected_income_proof)
+        income_result = process_document(income_data, 'Income Proof', 'Summarize the document and return the monthly income')
 
-            assets_data = read_doc(assets_info)
-            assets_result = process_document(assets_data, "Assets Information", 'Calculate the total value of assets')
+        assets_data = read_doc(assets_info)
+        assets_result = process_document(assets_data, "Assets Information", 'Calculate the total value of assets')
 
-            debts_data = read_doc(debts_info)
-            debts_result = process_document(debts_data, "Debts Information", 'Summarize the monthly debt payment and total debt amount and return in bullet points')
-            print(debts_result)
+        debts_data = read_doc(debts_info)
+        debts_result = process_document(debts_data, "Debts Information", 'Summarize the monthly debt payment and total debt amount and return in bullet points')
+        print(debts_result)
 
-            ans = credit_risk(bank_statement_data, credit_card_data, income_result, assets_result, debts_result)
-            st.write(ans)
-            data = parse_response(ans)
-            save_to_database(data)  
-        except FileNotFoundError as e:
-            st.error("Error Processing Files")
+        ans = credit_risk(bank_statement_data, credit_card_data, income_result, assets_result, debts_result)
+        st.write(ans)
+        data = parse_response(ans)
+        save_to_database(data)  
     else:
         st.error("Please upload all required documents.")
