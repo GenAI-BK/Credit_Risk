@@ -85,7 +85,7 @@ def credit_risk(bank_statement_data, credit_card_data, income_data, assets_data,
             {"role": "user", "content": f'''
             Bank Statement: {bank_statement_data}
             Credit card Statement: {credit_card_data}
-            Proof Of income: {income_data}
+            Proof Of income  ({selected_income_proof}): {income_data}
             Assets: {assets_data}
             Current outstanding debts and Monthly payments for those Debts: {debts_data}
             Credit Score: {credit_score}
