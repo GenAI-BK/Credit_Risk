@@ -15,8 +15,6 @@ if 'session_id' not in st.session_state:
 
 llm=OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-st.title("Credit Risk Analysis")
-
 borrower = st.text_input("Enter Borrower's Name")
 loan_amount = st.text_input("Enter Requested loan amount")
 purpose = st.text_input("Enter Loan Purpose")
@@ -98,6 +96,9 @@ def credit_risk(bank_statement_data, credit_card_data, income_data, assets_data,
             "Risk Factors:"
             "Conclusion:"
             "Tips/Further Steps:"
+            Do not use LaTeX or any other special formatting. \
+            Just give the numbers and simple explanations without\
+            any special characters like \\, ',(commas) ', ^, or _.
             '''}
         ],
     )
