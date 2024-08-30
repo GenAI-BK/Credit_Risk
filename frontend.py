@@ -10,8 +10,6 @@ from docx import Document
 import streamlit as st
 import uuid
 
-st.title("Credit Risk Analysis")
-
 if 'session_id' not in st.session_state:
     st.session_state['session_id'] = str(uuid.uuid4())
 
@@ -35,12 +33,11 @@ def perform_ocr(image):
     try:
         # Convert the image to text using a placeholder prompt (adjust as needed)
         result = llm.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are an OCR expert."},
                 {"role": "user", "content": "Extract all text from this image."}
             ],
-            max_tokens=1000,
         )
         return result.choices[0].message.content
     except Exception as e:
@@ -55,7 +52,7 @@ def read_doc(doc_file):
 
 def process_document(document_text, document_type, prompt):
     response = llm.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": f"You are a financial expert analyzing a {document_type}."},
             {"role": "user", "content": f"Document Type: {document_type}\nDocument Text: {document_text}. \
@@ -66,7 +63,7 @@ def process_document(document_text, document_type, prompt):
 
 def credit_risk(bank_statement_data, credit_card_data, income_data, assets_data, debts_data):
     response = llm.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": "You are a financial expert analyzing credit risk."},
             {"role": "user", "content": f'''
@@ -174,26 +171,33 @@ if st.button("Evaluate risk"):
         credit_card_data = read_doc(credit_statement) if credit_statement else ""
 
         income_data = read_doc(selected_income_proof)
-        income_result = process_document(income_data, 'Income Proof', 'Summarize the document and return the monthly income')
-        print(income_result)
+        income_result = process_document(income_data, 'Income Proof', 'Read the document and return the monthly income')
 
         assets_data = read_doc(assets_info)
         assets_result = process_document(assets_data, "Assets Information", 'Calculate the total value of assets')
 
         debts_data = read_doc(debts_info)
         debts_result = process_document(debts_data, "Debts Information", 'Summarize the monthly debt payment and total debt amount and return in bullet points')
-        print(debts_result)
 
         ans = credit_risk(bank_statement_data, credit_card_data, income_result, assets_result, debts_result)
-        st.write(ans)
+        st.session_state['ans'] = ans
         data = parse_response(ans)
         df= save_to_database(data, st.session_state['session_id'])
         excel_data = download_excel(df)
-        st.download_button(
-            label="Download analysis as Excel",
-            data=excel_data,
-            file_name='credit_risk_analysis.xlsx',
-            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )  
+        st.session_state['df'] = df
     else:
         st.error("Please upload all required documents.")
+
+# Display the stored answer if it exists
+if 'ans' in st.session_state:
+    st.write(st.session_state['ans'])
+
+# Provide the download button for the Excel file
+if 'df' in st.session_state:
+    excel_data = download_excel(st.session_state['df'])
+    st.download_button(
+        label="Download analysis as Excel",
+        data=excel_data,
+        file_name='credit_risk_analysis.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
