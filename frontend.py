@@ -137,6 +137,7 @@ def parse_response(response):
 def save_to_database(data, session_id, borrower_name):
     conn = sqlite3.connect('credit_risk.db')
     cursor = conn.cursor()
+    cursor.execute('''DROP TABLE credit_risk_analysis''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS credit_risk_analysis (
                         session_id TEXT,
                         borrower_name TEXT,
