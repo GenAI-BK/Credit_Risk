@@ -15,6 +15,8 @@ if 'session_id' not in st.session_state:
 
 llm=OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
+st.title("Credit Risk Analysis")
+
 borrower = st.text_input("Enter Borrower's Name")
 loan_amount = st.text_input("Enter Requested loan amount")
 purpose = st.text_input("Enter Loan Purpose")
