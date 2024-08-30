@@ -89,7 +89,7 @@ def credit_risk(bank_statement_data, credit_card_data, income_data, assets_data,
             "EAD:"   
             "LGD:"
             "PD:"
-            "Expected Loss = PD x LGD x EAD:"
+            "Expected Loss = PD x LGD x EAD:" (Do not show any calculations)
             "Present DTI:"
             "DTI if approved:"
             "Positive Indicators:"
