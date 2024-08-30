@@ -15,6 +15,8 @@ if 'session_id' not in st.session_state:
 
 llm=OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
+st.title("Credit Risk Analysis")
+
 borrower = st.text_input("Enter Borrower's Name")
 loan_amount = st.text_input("Enter Requested loan amount")
 purpose = st.text_input("Enter Loan Purpose")
@@ -132,12 +134,12 @@ def parse_response(response):
     
     return data
 
-def save_to_database(data, session_id):
+def save_to_database(data, session_id, borrower_name):
     conn = sqlite3.connect('credit_risk.db')
     cursor = conn.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS credit_risk_analysis (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
                         session_id TEXT,
+                        borrower_name TEXT,
                         PD TEXT,
                         EAD TEXT,
                         LGD TEXT,
@@ -145,9 +147,9 @@ def save_to_database(data, session_id):
                         Positive_Indicators TEXT,
                         Risk_Factors TEXT,
                         Conclusion TEXT)''')
-    cursor.execute('''INSERT INTO credit_risk_analysis (session_id, PD, EAD, LGD, Expected_Loss, Positive_Indicators, Risk_Factors, Conclusion)
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', 
-                      (session_id, data['PD'], data['EAD'], data['LGD'], data['Expected Loss'], data['Positive Indicators'], data['Risk Factors'], data['Conclusion']))
+    cursor.execute('''INSERT INTO credit_risk_analysis (session_id, borrower_name, PD, EAD, LGD, Expected_Loss, Positive_Indicators, Risk_Factors, Conclusion)
+                      VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
+                      (session_id, borrower_name, data['PD'], data['EAD'], data['LGD'], data['Expected Loss'], data['Positive Indicators'], data['Risk Factors'], data['Conclusion']))
     conn.commit()
     df = pd.read_sql_query("SELECT * FROM credit_risk_analysis WHERE session_id = ?", conn, params=(session_id,))
     conn.close()
@@ -185,7 +187,7 @@ if st.button("Evaluate risk"):
         ans = credit_risk(bank_statement_data, credit_card_data, income_result, assets_result, debts_result)
         st.session_state['ans'] = ans
         data = parse_response(ans)
-        df= save_to_database(data, st.session_state['session_id'])
+        df= save_to_database(data, st.session_state['session_id'], borrower)
         excel_data = download_excel(df)
         st.session_state['df'] = df
     else:
